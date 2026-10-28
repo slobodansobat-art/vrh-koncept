@@ -258,7 +258,7 @@
     if (savet && !vidjen && !MIRNO.matches) {
       setTimeout(function () {
         if (window.scrollY > 40) return;
-        savet.textContent = 'Želiš samo kuću, bez dugmića? Uključi ovde.';
+        savet.textContent = 'Želite samo kuću, bez dugmića? Uključite ovde.';
         savet.classList.add('on');
         try { localStorage.setItem('vrh-savet', '1'); } catch (e) {}
         setTimeout(skloniSavet, 4500);
