@@ -1,0 +1,34 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/frames/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/assets/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.pdf"
+  [headers.values]
+    Content-Disposition = "attachment; filename=\"Vrh-cenovnik.pdf\""
+
+[[redirects]]
+  from = "/hvala"
+  to = "/hvala.html"
+  status = 200
+
+[[redirects]]
+  from = "/privatnost"
+  to = "/privatnost.html"
+  status = 200
