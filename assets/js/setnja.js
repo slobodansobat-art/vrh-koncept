@@ -7,11 +7,16 @@
 
   /* x, y = položaj u procentima široke slike 16:9; xm, ym = položaj za telefon kad se razlikuje */
   var SCENE = [
-    { ime: 'Ulaz', pins: [] },
-    { ime: 'Kuhinja', pins: [{ t: 'Opremljena kuhinja', x: 10, y: 64 }, { t: 'Trpezarija za 4', x: 40, y: 76 }] },
-    { ime: 'Galerija', pins: [{ t: 'Bračni krevet', x: 63, y: 80 }, { t: 'Pogled sa galerije', x: 50, y: 32, ym: 42 }] },
-    { ime: 'Dnevna soba', pins: [{ t: 'Peć na drva', x: 50, y: 64 }, { t: 'Izlaz na terasu', x: 33, y: 50, xm: 38, ym: 52 }] },
-    { ime: 'Terasa', pins: [{ t: 'Ognjište', x: 50, y: 68 }, { t: 'Nebo bez svetla grada', x: 60, y: 20, ym: 38 }] }
+    { ime: 'Ulaz', pins: [{ t: 'Parking za 2 auta', x: 22, y: 74 }, { t: 'Asfalt do samih vrata', x: 7, y: 64 }],
+      stavke: ['Parking ispred kuće, za 2 auta', 'Asfalt do samih vrata', 'Wi-Fi u celoj kući'] },
+    { ime: 'Kuhinja', pins: [{ t: 'Opremljena kuhinja', x: 10, y: 64 }, { t: 'Trpezarija za 4', x: 40, y: 76 }],
+      stavke: ['Opremljena kuhinja', 'Trpezarija za 4', 'Aparat za kafu i sve za doručak'] },
+    { ime: 'Galerija', pins: [{ t: 'Bračni krevet', x: 63, y: 80 }, { t: 'Pogled sa galerije', x: 50, y: 32, ym: 42 }],
+      stavke: ['Bračni krevet', 'Pogled sa galerije', 'Posteljina i peškiri uključeni'] },
+    { ime: 'Dnevna soba', pins: [{ t: 'Peć na drva', x: 50, y: 64 }, { t: 'Izlaz na terasu', x: 33, y: 50, xm: 38, ym: 52 }],
+      stavke: ['Peć na drva', 'Podno grejanje', 'Izlaz na terasu'] },
+    { ime: 'Terasa', pins: [{ t: 'Ognjište', x: 50, y: 68 }, { t: 'Nebo bez svetla grada', x: 60, y: 20, ym: 38 }],
+      stavke: ['Ognjište', 'Nebo bez svetla grada', 'Sedenje za 4 uz vatru'] }
   ];
   var MOB_ISECAK = { x0: 0.3417, w: 0.3167 };     // telefon: srednji deo široke slike (608 od 1920)
 
@@ -19,6 +24,8 @@
   var stage = walk && walk.querySelector('.walk-stage');
   var canvas = stage && stage.querySelector('canvas');
   var pinsBox = stage && stage.querySelector('.pins');
+  var stavkeBox = stage && stage.querySelector('.stavke-mob');
+  var uputstvo = stage && stage.querySelector('.uputstvo');
   var kopije = stage ? [].slice.call(stage.querySelectorAll('[data-copy]')) : [];
   var sobeBtns = [].slice.call(document.querySelectorAll('.rooms [data-scene], .rooms-mob [data-scene]'));
   var sobe = document.querySelector('.rooms');
@@ -124,12 +131,39 @@
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
     ctx = canvas.getContext('2d'); ctx.imageSmoothingQuality = 'high';
     if (sobe) sobe.classList.toggle('skupljeno', window.innerHeight < 760 || window.scrollY > 40);
+    rasporediTraku();
     if (izvor) crtaj(izvor);
     rasporediPinove();
   }
+  /* telefon: ceo kadar u traci preko sredine ekrana, ispod teksta */
+  var trakaY = 0, trakaW = 1.1;
+  function rasporediTraku() {
+    body.classList.toggle('traka', set === 'mob');
+    if (set !== 'mob') return;
+    var tesno = H < 720;                                   // niski telefoni: bez podnaslova, manji naslov
+    walk.classList.toggle('tesno', tesno);
+    trakaW = tesno ? 1 : 1.1;
+    var dnoTeksta = 0;   // najviši tekst od svih stanica, da traka ne skače
+    kopije.forEach(function (k) { dnoTeksta = Math.max(dnoTeksta, k.offsetTop + k.offsetHeight); });
+    var h = W * trakaW * 9 / 16, spisak = (stavkeBox && stavkeBox.offsetHeight) || 90;
+    var dnoSlobodno = H - 100;                             // iznad trake sa cenom
+    trakaY = Math.round(Math.max(dnoTeksta + 20, tesno ? 0 : H * 0.40));
+    trakaY = Math.min(trakaY, dnoSlobodno - spisak - 18 - h);
+    if (stavkeBox) stavkeBox.style.top = (trakaY + h + 18) + 'px';
+    body.style.setProperty('--traka-dno', (trakaY + h) + 'px');
+  }
   function slikaRect() {
+    if (set === 'mob') { var w0 = W * trakaW, h0 = w0 * 9 / 16; return { x: (W - w0) / 2, y: trakaY, w: w0, h: h0 }; }
     var s = Math.max(W / iw, H / ih), w = iw * s, h = ih * s;
     return { x: (W - w) / 2, y: (H - h) / 2, w: w, h: h };
+  }
+  function ivice(r) {
+    var g = ctx.createLinearGradient(0, r.y * DPR, 0, (r.y + 32) * DPR);
+    g.addColorStop(0, 'rgba(14,22,32,1)'); g.addColorStop(1, 'rgba(14,22,32,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, r.y * DPR, canvas.width, 32 * DPR);
+    g = ctx.createLinearGradient(0, (r.y + r.h - 32) * DPR, 0, (r.y + r.h) * DPR);
+    g.addColorStop(0, 'rgba(14,22,32,0)'); g.addColorStop(1, 'rgba(14,22,32,1)');
+    ctx.fillStyle = g; ctx.fillRect(0, (r.y + r.h - 32) * DPR, canvas.width, 32 * DPR);
   }
   function crtaj(src) {
     if (!ctx || !src) return;
@@ -137,13 +171,15 @@
     if (!sw) return;
     iw = sw; ih = sh; izvor = src;
     var r = slikaRect();
+    if (set === 'mob') { ctx.fillStyle = '#0E1620'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
     try { ctx.drawImage(src, r.x * DPR, r.y * DPR, r.w * DPR, r.h * DPR); } catch (e) {}
+    if (set === 'mob') ivice(r);
   }
   /* početna slika dok se video ne učita */
   function prvaSlika() {
     var im = new Image();
     im.onload = function () { if (!izvor || izvor === im) crtaj(im); };
-    im.src = '/assets/img/1-ulaz' + (set === 'mob' ? '-mob' : '') + '.webp';
+    im.src = '/assets/img/1-ulaz.webp';
     izvor = null;
   }
   /* nacrtaj kadar stanice: početak prvog klipa ili kraj klipa koji vodi do nje */
@@ -171,6 +207,7 @@
       if (moj !== prelazBr) return;                        // prelaz je otkazan (npr. promena širine)
       clearTimeout(rezervaTajmer); cancelAnimationFrame(petlja); v.removeEventListener('ended', kraj);
       stanica = cilj; uToku = false; aktivni = null; krajAnim = Date.now();
+      document.dispatchEvent(new CustomEvent('vrh-stanica', { detail: cilj }));
       if (neuspeh === true) { v.pause(); kadarStanice(cilj, null); } else crtaj(v);   // poslednji kadar klipa
       ui({ z: cilj, scena: cilj }); predUcitaj();
     }
@@ -192,6 +229,7 @@
   function idi(smer) {
     var cilj = stanica + smer;
     if (uToku || cilj < 0 || cilj > 4) return false;
+    if (uputstvo) uputstvo.classList.remove('on');
     pusti(cilj); return true;
   }
   /* preskok na udaljenu prostoriju (spisak prostorija): kratko pretapanje */
@@ -214,8 +252,13 @@
     }, 250);
   }
 
+  function popuniStavke() {
+    if (!stavkeBox) return;
+    stavkeBox.innerHTML = (SCENE[trenutnaScena].stavke || []).map(function (t) { return '<li>' + t + '</li>'; }).join('');
+  }
   function rasporediPinove() {
     if (trenutnaScena < 0) return;
+    if (set === 'mob') { pinsBox.innerHTML = ''; pinovi = []; return; }
     var r = slikaRect();
     var isecak = set === 'mob' ? MOB_ISECAK : { x0: 0, w: 1 };
     pinovi = rasporedi(pinsBox, SCENE[trenutnaScena], r, isecak, W, H);
@@ -226,10 +269,11 @@
     if (st.scena !== trenutnaScena) {
       trenutnaScena = st.scena;
       sobeBtns.forEach(function (b) { if (+b.dataset.scene === st.scena) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
-      rasporediPinove();
+      rasporediPinove(); popuniStavke(); if (set === 'mob') rasporediTraku();
     }
     if (st.z !== uZastanku) {
       uZastanku = st.z;
+      if (stavkeBox) stavkeBox.classList.toggle('on', st.z >= 0);
       tajmeri.forEach(clearTimeout); tajmeri = [];
       kopije.forEach(function (c) { c.classList.toggle('on', +c.dataset.copy === st.z); });
       pinovi.forEach(function (b) { b.classList.remove('on'); if (b.tagName === 'BUTTON') b.tabIndex = -1; });
@@ -242,6 +286,7 @@
   /* na terasi: kako se odlazi ka rezervaciji, slika tamni */
   function zatamni() {
     var se = stage.querySelector('.scrim-end');
+    body.classList.toggle('odmaknuto', window.scrollY > 10);
     se.style.opacity = stanica === 4 && !uToku ? Math.min(1, Math.max(0, (window.scrollY - walk.offsetTop) / (H * 0.5))) : 0;
   }
 
@@ -284,15 +329,18 @@
     var dy = dodir.y - e.touches[0].clientY, dx = dodir.x - e.touches[0].clientX;
     if (dodir.nase === null) {
       if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
-      dodir.nase = Math.abs(dy) > Math.abs(dx) && smeDalje(dy > 0 ? 1 : -1);
+      dodir.vodoravno = Math.abs(dx) > Math.abs(dy);
+      // nagore ili ulevo = sledeća prostorija, nadole ili udesno = prethodna (kao priče na Instagramu)
+      dodir.nase = smeDalje((dodir.vodoravno ? dx : dy) > 0 ? 1 : -1);
     }
     if (dodir.nase) e.preventDefault();
   }
   function dodirKraj(e) {
     if (!dodir || !dodir.nase) { dodir = null; return; }
-    var dy = dodir.y - (e.changedTouches[0] ? e.changedTouches[0].clientY : dodir.y);
+    var t = e.changedTouches[0], dy = t ? dodir.y - t.clientY : 0, dx = t ? dodir.x - t.clientX : 0;
+    var d = dodir.vodoravno ? dx : dy;
     dodir = null;
-    if (Math.abs(dy) > 30 && !uToku) idi(dy > 0 ? 1 : -1);
+    if (Math.abs(d) > 30 && !uToku) idi(d > 0 ? 1 : -1);
   }
 
   function tastatura(e) {
@@ -313,7 +361,8 @@
     velicina(); prvaSlika();
     var prvi = klipovi[kljuc(0, false)]; ucitaj(prvi);
     prvi.addEventListener('loadeddata', function ld() { prvi.removeEventListener('loadeddata', ld); if (stanica === 0 && !uToku) kadarStanice(0, null); });
-    ui({ z: 0, scena: 0 }); predUcitaj();
+    ui({ z: 0, scena: 0 }); predUcitaj(); rasporediTraku();
+    if (uputstvo && MOB.matches) setTimeout(function () { if (stanica === 0 && !uToku) uputstvo.classList.add('on'); }, 1200);
     window.addEventListener('wheel', tocak, { passive: false });
     window.addEventListener('touchstart', dodirPocetak, { passive: true });
     window.addEventListener('touchmove', dodirPomeraj, { passive: false });
@@ -353,7 +402,17 @@
     // savet samo pri prvoj poseti
     var vidjen = false; try { vidjen = localStorage.getItem('vrh-savet') === '1'; } catch (e) { vidjen = true; }
     function skloniSavet() { if (savet) savet.classList.remove('on'); }
-    if (savet && !vidjen && !MIRNO.matches) {
+    if (savet && !vidjen && !MIRNO.matches && MOB.matches && walk) {
+      // na telefonu savet tek posle prvog prelaza, da se ne sudara sa uputstvom
+      document.addEventListener('vrh-stanica', function jednom() {
+        document.removeEventListener('vrh-stanica', jednom);
+        if (body.classList.contains('samo')) return;
+        savet.textContent = 'Želite samo kuću, bez dugmića? Uključite ovde.';
+        savet.classList.add('on');
+        try { localStorage.setItem('vrh-savet', '1'); } catch (e) {}
+        setTimeout(skloniSavet, 4500);
+      });
+    } else if (savet && !vidjen && !MIRNO.matches) {
       setTimeout(function () {
         if (window.scrollY > 40) return;
         savet.textContent = 'Želite samo kuću, bez dugmića? Uključite ovde.';

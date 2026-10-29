@@ -319,6 +319,36 @@ dialog.rez .booking{max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)
 .pin.info{cursor:default}
 .pin.levo{flex-direction:row-reverse;transform:translate(calc(-100% + 22px),-50%)}
 
+
+/* ---------- šetnja na telefonu: ceo kadar u traci, spisak ispod ---------- */
+.podnaslov,.stavke-mob,.uputstvo{display:none}
+@media (max-width:760px){
+  .walk.stanice .scrim-top{display:none}
+  .walk.stanice .hint{display:none}
+  .walk.stanice .podnaslov{display:block;margin-top:14px;font-size:16px;line-height:1.5;color:var(--svetla);max-width:320px}
+  .walk.stanice .stavke-mob{display:flex;flex-direction:column;gap:12px;position:absolute;left:24px;right:24px;margin:0;padding:0;list-style:none;opacity:0;transform:translateY(8px);transition:opacity .45s var(--ease),transform .45s var(--ease);pointer-events:none}
+  .walk.stanice .stavke-mob.on{opacity:1;transform:none}
+  .stavke-mob li{display:flex;align-items:center;gap:12px;font-size:15px;line-height:1.3}
+  .stavke-mob li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--fenjer);box-shadow:0 0 10px rgba(233,162,59,.7);flex:none}
+  .samo .stavke-mob{opacity:0!important}
+  .walk.stanice.tesno .podnaslov{display:none}
+  .walk.stanice.tesno .scene-copy h1,.walk.stanice.tesno .scene-copy h2{font-size:30px}
+  .walk.stanice.tesno .stavke-mob{gap:8px}
+  .walk.stanice.tesno .stavke-mob li{font-size:14px}
+  .traka .samo-btn,.traka.samo .samo-btn{top:calc(var(--traka-dno) - 56px);bottom:auto;right:12px}
+  .traka .savet{top:calc(var(--traka-dno) - 128px);bottom:auto}
+  .traka.odmaknuto .samo-btn{opacity:0;pointer-events:none}
+  .walk.stanice .uputstvo{background:rgba(14,22,32,.9)}
+  .walk.stanice .uputstvo{display:flex;flex-direction:column;align-items:center;gap:14px;position:absolute;left:50%;top:75%;transform:translate(-50%,-50%);z-index:5;padding:22px 26px;border-radius:2px;background:rgba(14,22,32,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(238,231,219,.18);opacity:0;transition:opacity .4s;pointer-events:none;text-align:center}
+  .walk.stanice .uputstvo.on{opacity:1}
+  .uputstvo .tekst{font-size:15px;font-weight:500;letter-spacing:.03em;white-space:nowrap}
+  .uputstvo .strelica{position:relative;width:28px;height:44px}
+  .uputstvo .strelica::before{content:"";position:absolute;left:50%;bottom:0;width:2px;height:40px;margin-left:-1px;background:var(--len);transform-origin:bottom;animation:povuci 1.6s var(--ease) infinite}
+  .uputstvo .strelica::after{content:"";position:absolute;left:50%;top:2px;width:14px;height:14px;margin-left:-8px;border-left:2px solid var(--len);border-top:2px solid var(--len);transform:rotate(45deg);animation:povuciVrh 1.6s var(--ease) infinite}
+}
+@keyframes povuci{0%{transform:scaleY(.3);opacity:0}30%{opacity:1}70%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+@keyframes povuciVrh{0%{transform:translateY(26px) rotate(45deg);opacity:0}30%{opacity:1}70%{transform:translateY(0) rotate(45deg);opacity:1}100%{opacity:0}}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
