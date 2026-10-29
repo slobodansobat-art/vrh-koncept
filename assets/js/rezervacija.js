@@ -345,12 +345,38 @@
     store.on(render); render();
   }
 
+
+  /* ---------- traka sa cenom: mali kalkulator ---------- */
+  function Traka(root) {
+    var cal = root.querySelector('[data-bar-cal]');
+    cal.addEventListener('click', function () { Dijalog.otvori(cal, 1, true); });
+    root.querySelectorAll('[data-bar-g]').forEach(function (b) { b.addEventListener('click', function () { promeniGoste(+b.dataset.barG); }); });
+    function opsegKr(a, b) {
+      if (a.getMonth() === b.getMonth()) return a.getDate() + '–' + b.getDate() + '. ' + MES_KR[b.getMonth()];
+      return a.getDate() + '. ' + MES_KR[a.getMonth()] + ' – ' + b.getDate() + '. ' + MES_KR[b.getMonth()];
+    }
+    function render() {
+      var s = store.s, u = ukupno(), ima = !!(s.in && s.out);
+      root.classList.toggle('izabrano', ima);
+      var n = ima ? noci(s.in, s.out).length : 0;
+      root.querySelector('[data-bar="datumi"]').textContent = ima ? opsegKr(s.in, s.out) + (MOB.matches ? ' · ' + nociTxt(n) : '') : (s.in ? 'Dolazak ' + s.in.getDate() + '. ' + MES_KR[s.in.getMonth()] + ', izaberite odlazak' : 'Izaberite datume');
+      root.querySelector('[data-bar="gosti"]').textContent = gostiTxt(s.gosti);
+      var st = root.querySelectorAll('[data-bar-g]'); st[0].disabled = s.gosti <= 1; st[1].disabled = s.gosti >= 4;
+      root.querySelector('[data-bar="noci"]').textContent = ima ? nociTxt(n) + (s.late ? ', kasni izlaz' : '') : '';
+      root.querySelector('[data-bar="ukupno"]').textContent = u == null ? '' : eur(u);
+      root.querySelector('[data-bar="uk-mob"]').innerHTML = u == null ? '' : '<b>' + eur(u) + '</b> ukupno';
+    }
+    store.on(render); render();
+    MOB.addEventListener && MOB.addEventListener('change', render);
+  }
+
   /* ---------- pokretanje ---------- */
   function start() {
     Dijalog.init();
     var inl = document.querySelector('[data-booking="inline"]');
     if (inl) new Rezervacija(inl, 'inline');
     var k = document.querySelector('.kalk'); if (k) Kalkulator(k);
+    var tr = document.querySelector('.pricebar'); if (tr) Traka(tr);
     document.querySelectorAll('[data-open-booking]').forEach(function (b) { b.addEventListener('click', function () { Dijalog.otvori(b, (MOB.matches && store.s.in && store.s.out) ? 2 : 1); }); });
     MOB.addEventListener && MOB.addEventListener('change', function () { if (Dijalog.rez) Dijalog.rez.korak(Dijalog.rez.k); });
   }

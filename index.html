@@ -211,10 +211,13 @@
   <div class="levo">
     <span class="od">od <b>95 €</b> po noći</span>
     <span class="sep" aria-hidden="true"></span>
-    <span class="podatak">Cela kuća, do 4 osobe</span>
+    <button type="button" class="bar-polje" data-bar-cal aria-label="Izaberite datume dolaska i odlaska"><small>Dolazak – odlazak</small><span data-bar="datumi">Izaberite datume</span></button>
+    <span class="sep samo-desk" aria-hidden="true"></span>
+    <div class="bar-gosti samo-desk"><small id="bar-gosti-l">Gosti</small><span role="group" aria-labelledby="bar-gosti-l"><button type="button" data-bar-g="-1" aria-label="Manje gostiju">−</button><b data-bar="gosti">2 osobe</b><button type="button" data-bar-g="1" aria-label="Više gostiju">+</button></span></div>
+    <span class="bar-uk-mob" data-bar="uk-mob"></span>
   </div>
   <div class="desno">
-    <a class="link-btn izaberi" href="#rezervacija">Izaberite datume</a>
+    <div class="bar-ukupno samo-desk"><small data-bar="noci"></small><b data-bar="ukupno"></b></div>
     <button type="button" class="btn" data-open-booking>Rezervišite</button>
   </div>
 </div>

@@ -249,6 +249,23 @@ dialog.rez .booking{max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)
 .page-tekst p,.page-tekst li{font-size:16px;line-height:1.75;color:var(--svetla)}
 .page-tekst ul{margin:0;padding-left:20px}
 
+
+/* traka sa cenom kao mali kalkulator */
+.bar-polje{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:44px;justify-content:center;padding:0;border:0;background:none;color:var(--len);cursor:pointer;text-align:left;font:inherit}
+.bar-polje small,.bar-gosti small,.bar-ukupno small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--svetla)}
+.bar-polje span{font-size:15px;letter-spacing:.02em;text-decoration:underline;text-underline-offset:5px;text-decoration-color:rgba(238,231,219,.45)}
+.izabrano .bar-polje span{text-decoration:none}
+.bar-polje:hover span{text-decoration-color:var(--fenjer)}
+.bar-gosti{display:flex;flex-direction:column;gap:3px}
+.bar-gosti span{display:flex;align-items:center;gap:8px}
+.bar-gosti b{font-weight:400;font-size:15px;min-width:64px;text-align:center}
+.bar-gosti button{width:30px;height:30px;border-radius:50%;border:1px solid rgba(238,231,219,.35);background:none;color:var(--len);font-size:16px;line-height:1;cursor:pointer}
+.bar-gosti button:disabled{opacity:.35;cursor:default}
+.bar-ukupno{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bar-ukupno b{font-size:22px;font-weight:400;font-stretch:115%}
+.pricebar:not(.izabrano) .bar-ukupno{display:none}
+.bar-uk-mob{display:none}
+
 /* ---------- niski ekrani računara ---------- */
 @media (max-height:760px) and (min-width:761px){
   .scene-copy{top:120px}
@@ -284,7 +301,15 @@ dialog.rez .booking{max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)
   .pricebar{left:12px;right:12px;padding:0 10px 0 20px;gap:12px}
   .pricebar .levo{flex-direction:column;align-items:flex-start;gap:2px}
   .pricebar .od{font-size:12px}.pricebar .od b{font-size:20px}
-  .pricebar .sep,.pricebar .izaberi{display:none}
+  .pricebar .sep,.pricebar .samo-desk{display:none}
+  .pricebar .levo{gap:0}
+  .bar-polje{min-height:0;gap:0}
+  .bar-polje small{display:none}
+  .bar-polje span{font-size:12px;color:var(--svetla)}
+  .pricebar.izabrano .od{display:none}
+  .pricebar.izabrano .bar-polje span{font-size:13px;color:var(--len)}
+  .pricebar.izabrano .bar-uk-mob{display:block;font-size:12px;color:var(--svetla)}
+  .bar-uk-mob b{font-size:20px;font-weight:400;font-stretch:115%;color:var(--len);margin-right:4px}
   .pricebar .podatak{font-size:12px}
   .pricebar .btn{padding:0 22px}
   .scena-st .scene-copy{margin-left:24px;margin-top:118px}
