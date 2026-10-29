@@ -94,6 +94,7 @@
   }
 
   /* ---------- šetnja: stanice, između njih se pušta video ---------- */
+  var VERZIJA = 3;                                 // menja se kad se klipovi promene, da telefon ne koristi stare
   var TRAJANJE = [3.2, 3.4, 5.2, 2.8];             // dužina prelaza u sekundama (za rezervni tajmer)
   var set = MOB.matches ? 'mob' : 'desk';
   var ctx, W = 0, H = 0, DPR = 1, trenutnaScena = -1, uZastanku = -1, tajmeri = [], pinovi = [];
@@ -112,7 +113,7 @@
       var v = document.createElement('video');
       v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
       v.preload = 'none';
-      v.dataset.src = '/assets/video/t' + (x[0] + 1) + '-' + set + (x[1] ? '-r' : '') + '.mp4';
+      v.dataset.src = '/assets/video/t' + (x[0] + 1) + '-' + set + (x[1] ? '-r' : '') + '.mp4?v=' + VERZIJA;
       kutija.appendChild(v); klipovi[kljuc(x[0], x[1])] = v;
     });
   }
@@ -172,7 +173,10 @@
     iw = sw; ih = sh; izvor = src;
     var r = slikaRect();
     if (set === 'mob') { ctx.fillStyle = '#0E1620'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-    try { ctx.drawImage(src, r.x * DPR, r.y * DPR, r.w * DPR, r.h * DPR); } catch (e) {}
+    // nikad ne razvlačimo: ako izvor nije istog oblika kao okvir, isečemo višak (cover)
+    var sx = 0, sy = 0, cw = sw, chh = sh, ro = r.w / r.h;
+    if (sw / sh > ro) { cw = sh * ro; sx = (sw - cw) / 2; } else { chh = sw / ro; sy = (sh - chh) / 2; }
+    try { ctx.drawImage(src, sx, sy, cw, chh, r.x * DPR, r.y * DPR, r.w * DPR, r.h * DPR); } catch (e) {}
     if (set === 'mob') ivice(r);
   }
   /* početna slika dok se video ne učita */
