@@ -54,6 +54,7 @@
       var ivica = mob ? 24 : 56, gore = mob ? 120 : 140, dole = mob ? 170 : 150, desno = mob ? 24 : 120;
       if (px < ivica || px > W - desno - (mob ? 30 : 200) || py < gore || py > H - dole) return; // samo ono što je u kadru
       var b = napraviPin(p, mob); b.style.left = px + 'px'; b.style.top = py + 'px';
+      if (mob && px > W * 0.5) b.classList.add('levo');   // natpis se otvara na stranu gde ima mesta
       box.appendChild(b); out.push(b);
     });
     return out;
@@ -90,7 +91,7 @@
   var set = MOB.matches ? 'mob' : 'desk';
   var ctx, W = 0, H = 0, DPR = 1, trenutnaScena = -1, uZastanku = -1, tajmeri = [], pinovi = [];
   var stanica = 0, uToku = false, krajAnim = 0, poslednjiTocak = 0, aktivni = null, petlja = 0;
-  var klipovi = {}, kutija = null, izvor = null, iw = 1440, ih = 810;
+  var klipovi = {}, kutija = null, izvor = null, iw = 1440, ih = 810, prelazBr = 0, rezervaTajmer = 0, skokTajmer = 0;
 
   function kljuc(t, nazad) { return 't' + (t + 1) + (nazad ? 'r' : 'f'); }
   function napraviKlipove() {
@@ -163,17 +164,19 @@
     var v = klipovi[kljuc(t, nazad)];
     uToku = true; aktivni = v; ucitaj(v);
     ui({ z: -1, scena: stanica });
-    var gotov = false, rezerva = 0;
+    var gotov = false, moj = ++prelazBr;
     function zavrsi(neuspeh) {
       if (gotov) return; gotov = true;
-      clearTimeout(rezerva); cancelAnimationFrame(petlja); v.removeEventListener('ended', kraj);
+      v.removeEventListener('ended', kraj);
+      if (moj !== prelazBr) return;                        // prelaz je otkazan (npr. promena širine)
+      clearTimeout(rezervaTajmer); cancelAnimationFrame(petlja); v.removeEventListener('ended', kraj);
       stanica = cilj; uToku = false; aktivni = null; krajAnim = Date.now();
       if (neuspeh === true) { v.pause(); kadarStanice(cilj, null); } else crtaj(v);   // poslednji kadar klipa
       ui({ z: cilj, scena: cilj }); predUcitaj();
     }
     function kraj() { zavrsi(false); }
     function korak() {
-      if (gotov) return;
+      if (gotov || moj !== prelazBr) return;
       if (v.readyState >= 2) crtaj(v);
       if (v.currentTime > v.duration * 0.5 && trenutnaScena !== cilj) ui({ z: -1, scena: cilj });
       petlja = requestAnimationFrame(korak);
@@ -182,7 +185,8 @@
     try { v.currentTime = 0; } catch (e) {}
     var p = v.play();
     if (p && p.catch) p.catch(function () { zavrsi(true); });   // pregledač ne da video: samo pređi na stanicu
-    rezerva = setTimeout(function () { zavrsi(true); }, (TRAJANJE[t] + 8) * 1000);
+    clearTimeout(rezervaTajmer);
+    rezervaTajmer = setTimeout(function () { zavrsi(true); }, (TRAJANJE[t] + 8) * 1000);
     petlja = requestAnimationFrame(korak);
   }
   function idi(smer) {
@@ -198,8 +202,11 @@
     if (Math.abs(i - stanica) === 1) { pusti(i); return; }
     uToku = true; canvas.classList.add('pretapanje');
     ui({ z: -1, scena: i });
-    setTimeout(function () {
+    var moj = ++prelazBr;
+    clearTimeout(skokTajmer);
+    skokTajmer = setTimeout(function () {
       kadarStanice(i, function () {
+        if (moj !== prelazBr) return;
         canvas.classList.remove('pretapanje');
         stanica = i; uToku = false; krajAnim = Date.now();
         ui({ z: i, scena: i }); predUcitaj();
@@ -259,6 +266,9 @@
     if (Math.abs(dy) < Math.abs(e.deltaX)) return;
     var smer = dy > 0 ? 1 : -1, sad = Date.now(), pauza = sad - poslednjiTocak;
     poslednjiTocak = sad;
+    pratiVrh();
+    if (smer < 0 && naVrhu() && !uToku && sad - stigaoGore < 450) { stigaoGore = sad; if (stanica > 0) e.preventDefault(); return; }
+    if (smer > 0 && stanica === 4 && !uToku && naVrhu() && sad - krajAnim < 700) { krajAnim = sad; e.preventDefault(); return; }
     if (!smeDalje(smer)) return;
     e.preventDefault();
     // trackpad posle poteza šalje još dugo male pokrete: računamo samo novi potez
@@ -270,6 +280,7 @@
   function dodirPocetak(e) { if (e.touches.length !== 1) { dodir = null; return; } dodir = { y: e.touches[0].clientY, x: e.touches[0].clientX, nase: null }; }
   function dodirPomeraj(e) {
     if (!dodir) return;
+    pratiVrh();
     var dy = dodir.y - e.touches[0].clientY, dx = dodir.x - e.touches[0].clientX;
     if (dodir.nase === null) {
       if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
@@ -312,8 +323,9 @@
     window.addEventListener('resize', function () {
       var novi = MOB.matches ? 'mob' : 'desk';
       if (novi !== set) {
-        set = novi; if (aktivni) { aktivni.pause(); }
-        cancelAnimationFrame(petlja); uToku = false; aktivni = null; izvor = null;
+        set = novi; prelazBr++; clearTimeout(rezervaTajmer); clearTimeout(skokTajmer);
+        if (aktivni) { aktivni.pause(); }
+        cancelAnimationFrame(petlja); uToku = false; aktivni = null; izvor = null; canvas.classList.remove('pretapanje');
         napraviKlipove(); velicina(); kadarStanice(stanica, null); ui({ z: stanica, scena: stanica }); predUcitaj();
         return;
       }

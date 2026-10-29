@@ -317,6 +317,7 @@ dialog.rez .booking{max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)
 @media (max-width:380px){.booking{padding-left:16px;padding-right:16px}.cal-grid,.cal-dow{gap:0}}
 @media (max-width:760px){.mapa-wrap svg text{font-size:22px}.mapa-wrap svg text.visina{transform:translateY(8px)}}
 .pin.info{cursor:default}
+.pin.levo{flex-direction:row-reverse;transform:translate(calc(-100% + 22px),-50%)}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
