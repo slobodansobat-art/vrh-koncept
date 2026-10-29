@@ -152,6 +152,7 @@
     trakaY = Math.min(trakaY, dnoSlobodno - spisak - 18 - h);
     if (stavkeBox) stavkeBox.style.top = (trakaY + h + 18) + 'px';
     body.style.setProperty('--traka-dno', (trakaY + h) + 'px');
+    body.style.setProperty('--traka-sredina', (trakaY + h / 2) + 'px');
   }
   function slikaRect() {
     if (set === 'mob') { var w0 = W * trakaW, h0 = w0 * 9 / 16; return { x: (W - w0) / 2, y: trakaY, w: w0, h: h0 }; }

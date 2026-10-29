@@ -338,7 +338,9 @@ dialog.rez .booking{max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)
   .traka .samo-btn,.traka.samo .samo-btn{top:calc(var(--traka-dno) - 56px);bottom:auto;right:12px}
   .traka .savet{top:calc(var(--traka-dno) - 128px);bottom:auto}
   .traka.odmaknuto .samo-btn{opacity:0;pointer-events:none}
-  .walk.stanice .uputstvo{background:rgba(14,22,32,.9)}
+  .walk.walk.stanice .uputstvo{top:var(--traka-sredina,75%);background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0}
+  .uputstvo .tekst{text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 18px rgba(0,0,0,.7)}
+  .uputstvo .strelica{filter:drop-shadow(0 1px 3px rgba(0,0,0,.9)) drop-shadow(0 0 10px rgba(0,0,0,.6))}
   .walk.stanice .uputstvo{display:flex;flex-direction:column;align-items:center;gap:14px;position:absolute;left:50%;top:75%;transform:translate(-50%,-50%);z-index:5;padding:22px 26px;border-radius:2px;background:rgba(14,22,32,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(238,231,219,.18);opacity:0;transition:opacity .4s;pointer-events:none;text-align:center}
   .walk.stanice .uputstvo.on{opacity:1}
   .uputstvo .tekst{font-size:15px;font-weight:500;letter-spacing:.03em;white-space:nowrap}
