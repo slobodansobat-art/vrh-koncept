@@ -47,7 +47,10 @@ p{margin:0}
 /* ---------- šetnja ---------- */
 .walk{position:relative}
 .walk-stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--noc)}
-.walk-stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.walk-stage canvas{position:absolute;inset:0;width:100%;height:100%;transition:opacity .25s}
+.walk-stage canvas.pretapanje{opacity:0}
+.vid-kutija{position:absolute;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none}
+.vid-kutija video{width:2px;height:2px}
 .scrim-top{position:absolute;left:0;right:0;top:0;height:520px;background:linear-gradient(180deg,rgba(14,22,32,.78) 0%,rgba(14,22,32,.55) 45%,rgba(14,22,32,0) 100%);pointer-events:none}
 .scrim-end{position:absolute;inset:0;background:rgba(7,11,17,.38);opacity:0;transition:opacity .6s;pointer-events:none}
 .scene-copy{position:absolute;left:var(--ivica);top:150px;max-width:600px;opacity:0;transform:translateY(8px);transition:opacity .45s var(--ease),transform .45s var(--ease);pointer-events:none}

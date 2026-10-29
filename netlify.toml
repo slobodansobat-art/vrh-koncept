@@ -9,7 +9,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[headers]]
-  for = "/assets/frames/*"
+  for = "/assets/video/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 

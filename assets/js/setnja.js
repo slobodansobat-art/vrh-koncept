@@ -1,4 +1,4 @@
-/* Vrh – šetnja kroz kuću: niz kadrova kojim upravlja skrol */
+/* Vrh – šetnja kroz kuću: stanice, a između njih kratki video prelazi */
 (function () {
   'use strict';
   var doc = document.documentElement, body = document.body;
@@ -13,9 +13,6 @@
     { ime: 'Dnevna soba', pins: [{ t: 'Peć na drva', x: 50, y: 64 }, { t: 'Izlaz na terasu', x: 33, y: 50, xm: 38, ym: 52 }] },
     { ime: 'Terasa', pins: [{ t: 'Ognjište', x: 50, y: 68 }, { t: 'Nebo bez svetla grada', x: 60, y: 20, ym: 38 }] }
   ];
-  var PRELAZI = [{ id: 't1', d: 53, m: 27 }, { id: 't2', d: 59, m: 30 }, { id: 't3', d: 99, m: 50 }, { id: 't4', d: 42, m: 21 }];
-  var ZADRZI = [0.8, 0.9, 0.9, 0.9, 0.7];       // zastanak na sceni, u visinama ekrana
-  var DUZINE = [1.7, 1.9, 3.2, 1.4];             // prelazi, u visinama ekrana
   var MOB_ISECAK = { x0: 0.3417, w: 0.3167 };     // telefon: srednji deo široke slike (608 od 1920)
 
   var walk = document.querySelector('.walk');
@@ -88,107 +85,133 @@
     });
   }
 
-  /* ---------- šetnja ---------- */
-  var set = MOB.matches ? 'mob' : 'desk', kadrovi = [], ukupnoJed = 0, segmenti = [];
-  var ctx, W = 0, H = 0, DPR = 1, poslednji = null, trenutnaScena = -1, uZastanku = -1, tajmeri = [], pinovi = [];
+  /* ---------- šetnja: stanice, između njih se pušta video ---------- */
+  var TRAJANJE = [3.2, 3.4, 5.2, 2.8];             // dužina prelaza u sekundama (za rezervni tajmer)
+  var set = MOB.matches ? 'mob' : 'desk';
+  var ctx, W = 0, H = 0, DPR = 1, trenutnaScena = -1, uZastanku = -1, tajmeri = [], pinovi = [];
+  var stanica = 0, uToku = false, krajAnim = 0, poslednjiTocak = 0, aktivni = null, petlja = 0;
+  var klipovi = {}, kutija = null, izvor = null, iw = 1440, ih = 810;
 
-  function pripremiSegmente() {
-    segmenti = []; ukupnoJed = 0;
-    for (var i = 0; i < 5; i++) {
-      segmenti.push({ tip: 'z', i: i, od: ukupnoJed, len: ZADRZI[i] }); ukupnoJed += ZADRZI[i];
-      if (i < 4) { segmenti.push({ tip: 'p', i: i, od: ukupnoJed, len: DUZINE[i] }); ukupnoJed += DUZINE[i]; }
-    }
-  }
-  var generacija = 0, trazeno = {}, dodajURed = null;
-  var STEDI = !!(navigator.connection && navigator.connection.saveData);
-  function zatrazi(t) { if (t < 0 || t >= PRELAZI.length || trazeno[t] || !dodajURed) return; trazeno[t] = 1; dodajURed(t); }
-  function ucitajKadrove() {
-    var gen = ++generacija; trazeno = {};
-    kadrovi = PRELAZI.map(function (p) {
-      var n = set === 'mob' ? p.m : p.d, arr = [];
-      for (var k = 1; k <= n; k++) arr.push({ src: '/assets/frames/' + set + '/' + p.id + '_' + String(k).padStart(3, '0') + '.webp', img: null, ok: false });
-      return arr;
+  function kljuc(t, nazad) { return 't' + (t + 1) + (nazad ? 'r' : 'f'); }
+  function napraviKlipove() {
+    if (kutija) kutija.remove();
+    kutija = document.createElement('div'); kutija.className = 'vid-kutija'; kutija.setAttribute('aria-hidden', 'true');
+    stage.appendChild(kutija); klipovi = {};
+    var red = [];
+    for (var t = 0; t < 4; t++) red.push([t, false]);
+    for (t = 0; t < 4; t++) red.push([t, true]);
+    red.forEach(function (x) {
+      var v = document.createElement('video');
+      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
+      v.preload = 'none';
+      v.dataset.src = '/assets/video/t' + (x[0] + 1) + '-' + set + (x[1] ? '-r' : '') + '.mp4';
+      kutija.appendChild(v); klipovi[kljuc(x[0], x[1])] = v;
     });
-    // redosled: krajevi prelaza (scene) odmah, a prelazi na zahtev (trenutni i sledeći), prvo svaki četvrti kadar
-    var mojiKadrovi = kadrovi, red = [], vidjen = {};
-    function dodaj(t, k) { var key = t + ':' + k; if (vidjen[key] || !mojiKadrovi[t][k]) return; vidjen[key] = 1; red.push([t, k]); }
-    dodaj(0, 0); mojiKadrovi.forEach(function (a, t) { dodaj(t, a.length - 1); });
-    var aktivno = 0, idx = 0;
-    function sledeci() {
-      if (gen !== generacija) return;
-      while (aktivno < 6 && idx < red.length) {
-        (function (par) {
-          var f = mojiKadrovi[par[0]][par[1]], im = new Image();
-          aktivno++; im.decoding = 'async';
-          im.onload = function () { if (gen !== generacija) return; f.img = im; f.ok = true; aktivno--; if (!poslednji || poslednji.t === par[0]) nacrtaj(true); sledeci(); };
-          im.onerror = function () { aktivno--; sledeci(); };
-          im.src = f.src;
-        })(red[idx++]);
-      }
-    }
-    dodajURed = function (t) {
-      var a = mojiKadrovi[t], k, korak = STEDI ? 3 : 1;
-      for (k = 0; k < a.length; k += 4) dodaj(t, k);
-      for (k = 0; k < a.length; k += korak) dodaj(t, k);
-      sledeci();
-    };
-    sledeci();
-    zatrazi(0);
   }
+  function ucitaj(v) { if (v && !v.src) { v.src = v.dataset.src; v.preload = 'auto'; v.load(); } }
+  /* redom: prvi prelaz odmah, zatim oko trenutne stanice */
+  function predUcitaj() {
+    ucitaj(klipovi[kljuc(stanica, false)]);
+    if (stanica > 0) ucitaj(klipovi[kljuc(stanica - 1, true)]);
+    var v = klipovi[kljuc(Math.min(stanica + 1, 3), false)];
+    setTimeout(function () { ucitaj(v); }, 1500);
+  }
+
   function velicina() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = stage.clientWidth; H = stage.clientHeight;
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
     ctx = canvas.getContext('2d'); ctx.imageSmoothingQuality = 'high';
-    walk.style.height = (ukupnoJed * H + H) + 'px';
     if (sobe) sobe.classList.toggle('skupljeno', window.innerHeight < 760 || window.scrollY > 40);
-    poslednji = null; nacrtaj(true); rasporediPinove();
-  }
-  function stanje() {
-    var top = walk.offsetTop, raspon = walk.offsetHeight - H;
-    var prog = Math.min(1, Math.max(0, (window.scrollY - top) / raspon)) * ukupnoJed;
-    for (var s = 0; s < segmenti.length; s++) {
-      var g = segmenti[s];
-      if (prog <= g.od + g.len || s === segmenti.length - 1) {
-        var u = Math.min(1, Math.max(0, (prog - g.od) / g.len));
-        if (g.tip === 'z') return { z: g.i, t: g.i === 0 ? 0 : g.i - 1, k: g.i === 0 ? 0 : kadrovi[g.i - 1].length - 1, scena: g.i, u: u, kraj: g.i === 4 ? u : 0 };
-        var n = kadrovi[g.i].length;
-        return { z: -1, t: g.i, k: Math.round(u * (n - 1)), scena: u < 0.5 ? g.i : g.i + 1, u: u, kraj: 0 };
-      }
-    }
-  }
-  function nadjiUcitan(t, k) {
-    var a = kadrovi[t];
-    for (var d = 0; d < a.length; d++) {
-      if (a[k - d] && a[k - d].ok) return a[k - d];
-      if (a[k + d] && a[k + d].ok) return a[k + d];
-    }
-    return null;
+    if (izvor) crtaj(izvor);
+    rasporediPinove();
   }
   function slikaRect() {
-    var iw = set === 'mob' ? 540 : 1440, ih = set === 'mob' ? 960 : 810;
     var s = Math.max(W / iw, H / ih), w = iw * s, h = ih * s;
     return { x: (W - w) / 2, y: (H - h) / 2, w: w, h: h };
   }
-  function nacrtaj(sila) {
-    if (!ctx) return;
-    var st = stanje(); if (!st) return;
-    zatrazi(st.t); zatrazi(st.t + 1);
-    if (!sila && poslednji && poslednji.t === st.t && poslednji.k === st.k) { ui(st); return; }
-    var f = nadjiUcitan(st.t, st.k);
-    if (f) {
-      var r = slikaRect();
-      ctx.drawImage(f.img, r.x * DPR, r.y * DPR, r.w * DPR, r.h * DPR);
-      poslednji = st;
-    }
-    ui(st);
+  function crtaj(src) {
+    if (!ctx || !src) return;
+    var sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight;
+    if (!sw) return;
+    iw = sw; ih = sh; izvor = src;
+    var r = slikaRect();
+    try { ctx.drawImage(src, r.x * DPR, r.y * DPR, r.w * DPR, r.h * DPR); } catch (e) {}
   }
+  /* početna slika dok se video ne učita */
+  function prvaSlika() {
+    var im = new Image();
+    im.onload = function () { if (!izvor || izvor === im) crtaj(im); };
+    im.src = '/assets/img/1-ulaz' + (set === 'mob' ? '-mob' : '') + '.webp';
+    izvor = null;
+  }
+  /* nacrtaj kadar stanice: početak prvog klipa ili kraj klipa koji vodi do nje */
+  function kadarStanice(i, gotovo) {
+    var v = i === 0 ? klipovi[kljuc(0, false)] : klipovi[kljuc(i - 1, false)];
+    ucitaj(v);
+    function postavi() {
+      var cilj = i === 0 ? 0 : Math.max(0, v.duration - 0.04);
+      function nacrtano() { v.removeEventListener('seeked', nacrtano); crtaj(v); if (gotovo) gotovo(); }
+      if (Math.abs(v.currentTime - cilj) < 0.02 && v.readyState >= 2) { crtaj(v); if (gotovo) gotovo(); return; }
+      v.addEventListener('seeked', nacrtano); v.currentTime = cilj;
+    }
+    if (v.readyState >= 1) postavi(); else v.addEventListener('loadedmetadata', function lm() { v.removeEventListener('loadedmetadata', lm); postavi(); });
+  }
+
+  function pusti(cilj) {
+    var nazad = cilj < stanica, t = nazad ? cilj : stanica;
+    var v = klipovi[kljuc(t, nazad)];
+    uToku = true; aktivni = v; ucitaj(v);
+    ui({ z: -1, scena: stanica });
+    var gotov = false, rezerva = 0;
+    function zavrsi(neuspeh) {
+      if (gotov) return; gotov = true;
+      clearTimeout(rezerva); cancelAnimationFrame(petlja); v.removeEventListener('ended', kraj);
+      stanica = cilj; uToku = false; aktivni = null; krajAnim = Date.now();
+      if (neuspeh === true) { v.pause(); kadarStanice(cilj, null); } else crtaj(v);   // poslednji kadar klipa
+      ui({ z: cilj, scena: cilj }); predUcitaj();
+    }
+    function kraj() { zavrsi(false); }
+    function korak() {
+      if (gotov) return;
+      if (v.readyState >= 2) crtaj(v);
+      if (v.currentTime > v.duration * 0.5 && trenutnaScena !== cilj) ui({ z: -1, scena: cilj });
+      petlja = requestAnimationFrame(korak);
+    }
+    v.addEventListener('ended', kraj);
+    try { v.currentTime = 0; } catch (e) {}
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { zavrsi(true); });   // pregledač ne da video: samo pređi na stanicu
+    rezerva = setTimeout(function () { zavrsi(true); }, (TRAJANJE[t] + 8) * 1000);
+    petlja = requestAnimationFrame(korak);
+  }
+  function idi(smer) {
+    var cilj = stanica + smer;
+    if (uToku || cilj < 0 || cilj > 4) return false;
+    pusti(cilj); return true;
+  }
+  /* preskok na udaljenu prostoriju (spisak prostorija): kratko pretapanje */
+  function skoci(i) {
+    if (uToku) return;
+    if (window.scrollY > walk.offsetTop + 2) window.scrollTo({ top: walk.offsetTop, behavior: 'auto' });
+    if (i === stanica) return;
+    if (Math.abs(i - stanica) === 1) { pusti(i); return; }
+    uToku = true; canvas.classList.add('pretapanje');
+    ui({ z: -1, scena: i });
+    setTimeout(function () {
+      kadarStanice(i, function () {
+        canvas.classList.remove('pretapanje');
+        stanica = i; uToku = false; krajAnim = Date.now();
+        ui({ z: i, scena: i }); predUcitaj();
+      });
+    }, 250);
+  }
+
   function rasporediPinove() {
     if (trenutnaScena < 0) return;
     var r = slikaRect();
     var isecak = set === 'mob' ? MOB_ISECAK : { x0: 0, w: 1 };
-    var rr = set === 'mob' ? { x: r.x, y: r.y, w: r.w, h: r.h } : r;
-    pinovi = rasporedi(pinsBox, SCENE[trenutnaScena], rr, isecak, W, H);
+    pinovi = rasporedi(pinsBox, SCENE[trenutnaScena], r, isecak, W, H);
     if (uZastanku === trenutnaScena) pinovi.forEach(function (b) { b.classList.add('on'); if (b.tagName === 'BUTTON') b.tabIndex = 0; });
   }
   function ui(st) {
@@ -204,36 +227,99 @@
       kopije.forEach(function (c) { c.classList.toggle('on', +c.dataset.copy === st.z); });
       pinovi.forEach(function (b) { b.classList.remove('on'); if (b.tagName === 'BUTTON') b.tabIndex = -1; });
       if (st.z >= 0) {
-        pinovi.forEach(function (b, i) { tajmeri.push(setTimeout(function () { b.classList.add('on'); if (b.tagName === 'BUTTON') b.tabIndex = 0; }, 800 + i * 500)); });
+        pinovi.forEach(function (b, i) { tajmeri.push(setTimeout(function () { b.classList.add('on'); if (b.tagName === 'BUTTON') b.tabIndex = 0; }, 500 + i * 400)); });
       }
     }
+    zatamni();
+  }
+  /* na terasi: kako se odlazi ka rezervaciji, slika tamni */
+  function zatamni() {
     var se = stage.querySelector('.scrim-end');
-    se.style.opacity = st.z === 4 ? Math.min(1, st.u * 1.4) : 0;
+    se.style.opacity = stanica === 4 && !uToku ? Math.min(1, Math.max(0, (window.scrollY - walk.offsetTop) / (H * 0.5))) : 0;
   }
 
-  var zakazano = false;
-  function naSkrol() {
-    if (zakazano) return; zakazano = true;
-    requestAnimationFrame(function () { zakazano = false; nacrtaj(false); });
+  /* da li šetnja sada upravlja skrolom: stranica stoji na vrhu šetnje */
+  var stigaoGore = 0, bioDole = false;
+  function naVrhu() { return window.scrollY <= walk.offsetTop + 2; }
+  function pratiVrh() {
+    var gore = naVrhu();
+    if (gore && bioDole) stigaoGore = Date.now();
+    bioDole = !gore;
   }
-  function idiNaScenu(i) {
-    var g = segmenti.filter(function (x) { return x.tip === 'z' && x.i === i; })[0];
-    var raspon = walk.offsetHeight - H;
-    var y = walk.offsetTop + ((g.od + g.len * 0.45) / ukupnoJed) * raspon;
-    window.scrollTo({ top: y, behavior: MIRNO.matches ? 'auto' : 'smooth' });
+  function smeDalje(smer) {
+    if (!naVrhu()) return false;
+    if (uToku) return true;
+    if (smer > 0) return stanica < 4 || Date.now() - krajAnim < 700;   // posle terase kratko zadržimo, da zalet ne odnese stranu
+    return stanica > 0 && Date.now() - stigaoGore > 450;                // zalet odozdo ne vraća odmah na prethodnu stanicu
+  }
+
+  function tocak(e) {
+    if (e.ctrlKey) return;                                  // zumiranje
+    var dy = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? H : 1);
+    if (Math.abs(dy) < Math.abs(e.deltaX)) return;
+    var smer = dy > 0 ? 1 : -1, sad = Date.now(), pauza = sad - poslednjiTocak;
+    poslednjiTocak = sad;
+    if (!smeDalje(smer)) return;
+    e.preventDefault();
+    // trackpad posle poteza šalje još dugo male pokrete: računamo samo novi potez
+    if (uToku || sad - krajAnim < 250) return;
+    if (pauza > 180 || Math.abs(dy) >= 60) idi(smer);
+  }
+
+  var dodir = null;
+  function dodirPocetak(e) { if (e.touches.length !== 1) { dodir = null; return; } dodir = { y: e.touches[0].clientY, x: e.touches[0].clientX, nase: null }; }
+  function dodirPomeraj(e) {
+    if (!dodir) return;
+    var dy = dodir.y - e.touches[0].clientY, dx = dodir.x - e.touches[0].clientX;
+    if (dodir.nase === null) {
+      if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+      dodir.nase = Math.abs(dy) > Math.abs(dx) && smeDalje(dy > 0 ? 1 : -1);
+    }
+    if (dodir.nase) e.preventDefault();
+  }
+  function dodirKraj(e) {
+    if (!dodir || !dodir.nase) { dodir = null; return; }
+    var dy = dodir.y - (e.changedTouches[0] ? e.changedTouches[0].clientY : dodir.y);
+    dodir = null;
+    if (Math.abs(dy) > 30 && !uToku) idi(dy > 0 ? 1 : -1);
+  }
+
+  function tastatura(e) {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    var el = document.activeElement, tag = el && el.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) return;
+    if (document.querySelector('dialog[open]')) return;
+    var smer = 0;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey && tag !== 'BUTTON' && tag !== 'A')) smer = 1;
+    else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey && tag !== 'BUTTON' && tag !== 'A')) smer = -1;
+    if (!smer || !smeDalje(smer)) return;
+    e.preventDefault(); idi(smer);
   }
 
   function pokreniSetnju() {
-    walk.classList.add('walk-on');
-    pripremiSegmente(); ucitajKadrove();
-    velicina();
-    window.addEventListener('scroll', naSkrol, { passive: true });
+    walk.classList.add('walk-on', 'stanice');
+    napraviKlipove();
+    velicina(); prvaSlika();
+    var prvi = klipovi[kljuc(0, false)]; ucitaj(prvi);
+    prvi.addEventListener('loadeddata', function ld() { prvi.removeEventListener('loadeddata', ld); if (stanica === 0 && !uToku) kadarStanice(0, null); });
+    ui({ z: 0, scena: 0 }); predUcitaj();
+    window.addEventListener('wheel', tocak, { passive: false });
+    window.addEventListener('touchstart', dodirPocetak, { passive: true });
+    window.addEventListener('touchmove', dodirPomeraj, { passive: false });
+    window.addEventListener('touchend', dodirKraj, { passive: true });
+    window.addEventListener('keydown', tastatura);
+    window.addEventListener('scroll', function () { pratiVrh(); zatamni(); }, { passive: true });
     window.addEventListener('resize', function () {
       var novi = MOB.matches ? 'mob' : 'desk';
-      if (novi !== set) { set = novi; poslednji = null; ucitajKadrove(); }
+      if (novi !== set) {
+        set = novi; if (aktivni) { aktivni.pause(); }
+        cancelAnimationFrame(petlja); uToku = false; aktivni = null; izvor = null;
+        napraviKlipove(); velicina(); kadarStanice(stanica, null); ui({ z: stanica, scena: stanica }); predUcitaj();
+        return;
+      }
       velicina();
     });
-    sobeBtns.forEach(function (b) { b.addEventListener('click', function () { idiNaScenu(+b.dataset.scene); }); });
+    sobeBtns.forEach(function (b) { b.addEventListener('click', function () { skoci(+b.dataset.scene); }); });
   }
 
   /* ---------- spisak prostorija, Samo pogled, savet, traka sa cenom ---------- */
